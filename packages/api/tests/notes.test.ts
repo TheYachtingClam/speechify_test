@@ -110,10 +110,50 @@ describe('DELETE /notes/:id', () => {
       .send({ title: 'To Delete' });
 
     const noteId = create.body.id;
-    const res = await request(app).delete(`/notes/${noteId}`);
+    const res = await request(app)
+      .delete(`/notes/${noteId}`)
+      .set('Authorization', `Bearer ${token}`);
 
     assert.equal(res.status, 200);
     assert.deepEqual(res.body, { success: true });
+  });
+
+  it('returns 401 without a token', async () => {
+    const { app, token } = await makeAppWithUser();
+
+    const create = await request(app)
+      .post('/notes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'To Delete' });
+
+    const noteId = create.body.id;
+    const res = await request(app).delete(`/notes/${noteId}`);
+
+    assert.equal(res.status, 401);
+  });
+
+  it('returns 404 when deleting a note owned by another user', async () => {
+    const { app, token } = await makeAppWithUser();
+
+    const create = await request(app)
+      .post('/notes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Owned Note' });
+
+    const noteId = create.body.id;
+
+    const other = await request(app).post('/auth/register').send({
+      email: 'other@example.com',
+      password: 'password123',
+      name: 'Other',
+    });
+    const otherToken = other.body.token as string;
+
+    const res = await request(app)
+      .delete(`/notes/${noteId}`)
+      .set('Authorization', `Bearer ${otherToken}`);
+
+    assert.equal(res.status, 404);
   });
 });
 
