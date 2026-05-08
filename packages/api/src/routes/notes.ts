@@ -36,9 +36,10 @@ export function createNotesRouter(db: DB) {
       return res.status(400).json({ error: 'q parameter is required' });
     }
 
+    const pattern = `%${q}%`;
     const notes = db.prepare(
-      `SELECT * FROM notes WHERE user_id = ${userId} AND (title LIKE '%${q}%' OR content LIKE '%${q}%')`
-    ).all() as Note[];
+      'SELECT * FROM notes WHERE user_id = ? AND (title LIKE ? OR content LIKE ?)'
+    ).all(userId, pattern, pattern) as unknown as Note[];
 
     res.json(notes);
   });
