@@ -81,10 +81,14 @@ export function createNotesRouter(db: DB) {
     res.json(updated);
   });
 
-  router.delete('/:id', (req: AuthRequest, res: Response) => {
+  router.delete('/:id', authMiddleware, (req: AuthRequest, res: Response) => {
+    const userId = req.userId!;
     const noteId = parseInt(req.params.id, 10);
 
-    db.prepare('DELETE FROM notes WHERE id = ?').run(noteId);
+    const result = db.prepare('DELETE FROM notes WHERE id = ? AND user_id = ?').run(noteId, userId);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
     res.json({ success: true });
   });
 
